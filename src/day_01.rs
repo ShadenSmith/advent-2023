@@ -1,48 +1,69 @@
+use nom::{
+    branch::alt, bytes::complete::tag, character::complete::anychar, combinator::map_res,
+    error::ErrorKind, IResult,
+};
 use std::fs;
 use std::io::{BufRead, BufReader};
 
+fn digits_to_num(digits: &[u64]) -> Option<u64> {
+    if digits.is_empty() {
+        return None;
+    }
+    let mut num = 0;
+    num += (*digits.first().unwrap()) * 10;
+    num += *digits.last().unwrap();
+    Some(num)
+}
+
+//
+// Part 1
+//
 fn extract_digits(line: &str) -> Option<u64> {
     let digits: Vec<_> = line
         .chars()
         .filter(|c| c.is_numeric())
-        .map(|c| c.to_digit(10).expect("Could not parse digit"))
+        .map(|c| c.to_digit(10).unwrap() as u64)
         .collect();
 
-    if digits.is_empty() {
-        return None;
-    }
-
-    let mut num = 0;
-    num += (*digits.first().unwrap() as u64) * 10;
-    num += *digits.last().unwrap() as u64;
-    Some(num)
+    digits_to_num(&digits)
 }
 
-/// Parse a lowercase English digit: "one", "two", ... "nine"
-fn parse_digit(input: &str) -> Option<u64> {
-    match input {
-        "one" => Some(1),
-        "two" => Some(2),
-        "three" => Some(3),
-        "four" => Some(4),
-        "five" => Some(5),
-        "six" => Some(6),
-        "seven" => Some(7),
-        "eight" => Some(8),
-        "nine" => Some(9),
-        _ => None,
-    }
+//
+// Part 2
+//
+
+fn parse_digit_word(input: &str) -> IResult<&str, u64> {
+    // TODO: Avoid allocation from doing char.to_string()
+    let digit = map_res(anychar, |s: char| s.to_string().parse::<u64>());
+    // TODO: less ugliness
+    let one = map_res(tag("one"), |_s| Ok::<u64, ErrorKind>(1));
+    let two = map_res(tag("two"), |_s| Ok::<u64, ErrorKind>(2));
+    let three = map_res(tag("three"), |_s| Ok::<u64, ErrorKind>(3));
+    let four = map_res(tag("four"), |_s| Ok::<u64, ErrorKind>(4));
+    let five = map_res(tag("five"), |_s| Ok::<u64, ErrorKind>(5));
+    let six = map_res(tag("six"), |_s| Ok::<u64, ErrorKind>(6));
+    let seven = map_res(tag("seven"), |_s| Ok::<u64, ErrorKind>(7));
+    let eight = map_res(tag("eight"), |_s| Ok::<u64, ErrorKind>(8));
+    let nine = map_res(tag("nine"), |_s| Ok::<u64, ErrorKind>(9));
+    alt((digit, one, two, three, four, five, six, seven, eight, nine))(input)
 }
 
 fn extract_more_digits(line: &str) -> Option<u64> {
-    if line.is_empty() {
-        return None;
+    let mut digits = Vec::new();
+    let mut line = line;
+
+    while !line.is_empty() {
+        if let Ok(result) = parse_digit_word(line) {
+            line = result.0;
+            digits.push(result.1);
+        } else {
+            // move to next char
+            // TODO: move this logic to a nom parser
+            line = &line[1..];
+        }
     }
 
-    // first try to match a digit
-    //line.chars().into_iter().fir
-
-    None
+    digits_to_num(&digits)
 }
 
 pub fn day_01_a(path_name: &str) -> u64 {
@@ -95,21 +116,23 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_digit() {
-        assert_eq!(parse_digit("one"), Some(1));
-        assert_eq!(parse_digit("five"), Some(5));
-        assert_eq!(parse_digit("sixteen"), None);
+    fn test_parse_digit_word() {
+        assert_eq!(parse_digit_word("1c"), Ok(("c", 1)));
+        assert_eq!(parse_digit_word("one1"), Ok(("1", 1)));
+        assert_eq!(parse_digit_word("fivex"), Ok(("x", 5)));
+        assert_eq!(parse_digit_word("sixteen"), Ok(("teen", 6)));
+        assert!(parse_digit_word("teenfive").is_err());
     }
 
     #[test]
     fn test_part1() {
-        let result = day_01_a("inputs/day_01_test.txt");
+        let result = day_01_a("inputs/day_01_test_a.txt");
         assert_eq!(result, 142);
     }
 
     #[test]
     fn test_part2() {
-        let result = day_01_b("inputs/day_01_test.txt");
+        let result = day_01_b("inputs/day_01_test_b.txt");
         assert_eq!(result, 281);
     }
 }
