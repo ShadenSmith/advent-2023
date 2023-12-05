@@ -105,7 +105,6 @@ mod tests {
 
     #[test]
     fn test_extract_more_digits() {
-        assert_eq!(extract_more_digits("cats"), None);
         assert_eq!(extract_more_digits("two1nine"), Some(29));
         assert_eq!(extract_more_digits("eightwothree"), Some(83));
         assert_eq!(extract_more_digits("abcone2threexyz"), Some(13));
@@ -113,10 +112,35 @@ mod tests {
         assert_eq!(extract_more_digits("4nineeightseven2"), Some(42));
         assert_eq!(extract_more_digits("zoneight234"), Some(14));
         assert_eq!(extract_more_digits("7pqrstsixteen"), Some(76));
+        assert_eq!(extract_more_digits("cats"), None);
+        assert_eq!(extract_more_digits("338"), Some(38));
+        assert_eq!(extract_more_digits("seven88"), Some(78));
+        assert_eq!(extract_more_digits("qjgr1"), Some(11));
     }
 
     #[test]
     fn test_parse_digit_word() {
+        assert_eq!(parse_digit_word("0"), Ok(("", 0)));
+        assert_eq!(parse_digit_word("1"), Ok(("", 1)));
+        assert_eq!(parse_digit_word("2"), Ok(("", 2)));
+        assert_eq!(parse_digit_word("3"), Ok(("", 3)));
+        assert_eq!(parse_digit_word("4"), Ok(("", 4)));
+        assert_eq!(parse_digit_word("5"), Ok(("", 5)));
+        assert_eq!(parse_digit_word("6"), Ok(("", 6)));
+        assert_eq!(parse_digit_word("7"), Ok(("", 7)));
+        assert_eq!(parse_digit_word("8"), Ok(("", 8)));
+        assert_eq!(parse_digit_word("9"), Ok(("", 9)));
+
+        assert_eq!(parse_digit_word("one"), Ok(("", 1)));
+        assert_eq!(parse_digit_word("two"), Ok(("", 2)));
+        assert_eq!(parse_digit_word("three"), Ok(("", 3)));
+        assert_eq!(parse_digit_word("four"), Ok(("", 4)));
+        assert_eq!(parse_digit_word("five"), Ok(("", 5)));
+        assert_eq!(parse_digit_word("six"), Ok(("", 6)));
+        assert_eq!(parse_digit_word("seven"), Ok(("", 7)));
+        assert_eq!(parse_digit_word("eight"), Ok(("", 8)));
+        assert_eq!(parse_digit_word("nine"), Ok(("", 9)));
+
         assert_eq!(parse_digit_word("1c"), Ok(("c", 1)));
         assert_eq!(parse_digit_word("12"), Ok(("2", 1)));
         assert_eq!(parse_digit_word("one1"), Ok(("1", 1)));
