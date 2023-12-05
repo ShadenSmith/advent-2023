@@ -1,7 +1,3 @@
-use nom::{
-    branch::alt, bytes::complete::tag, character::complete::anychar, combinator::map_res,
-    error::ErrorKind, IResult,
-};
 use std::fs;
 use std::io::{BufRead, BufReader};
 
@@ -44,38 +40,27 @@ pub fn day_01_a(path_name: &str) -> u64 {
 // Part 2
 //
 
-fn parse_digit_word(input: &str) -> IResult<&str, u64> {
-    // TODO: Avoid allocation from doing char.to_string()
-    let digit = map_res(anychar, |s: char| s.to_string().parse::<u64>());
-    // TODO: less ugliness
-    let one = map_res(tag("one"), |_s| Ok::<u64, ErrorKind>(1));
-    let two = map_res(tag("two"), |_s| Ok::<u64, ErrorKind>(2));
-    let three = map_res(tag("three"), |_s| Ok::<u64, ErrorKind>(3));
-    let four = map_res(tag("four"), |_s| Ok::<u64, ErrorKind>(4));
-    let five = map_res(tag("five"), |_s| Ok::<u64, ErrorKind>(5));
-    let six = map_res(tag("six"), |_s| Ok::<u64, ErrorKind>(6));
-    let seven = map_res(tag("seven"), |_s| Ok::<u64, ErrorKind>(7));
-    let eight = map_res(tag("eight"), |_s| Ok::<u64, ErrorKind>(8));
-    let nine = map_res(tag("nine"), |_s| Ok::<u64, ErrorKind>(9));
-    alt((digit, one, two, three, four, five, six, seven, eight, nine))(input)
-}
-
 fn extract_more_digits(line: &str) -> Option<u64> {
-    let mut digits = Vec::new();
-    let mut line = line;
+    let word_names = [
+        "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    ];
 
-    while !line.is_empty() {
-        if let Ok(result) = parse_digit_word(line) {
-            line = result.0;
-            digits.push(result.1);
-        } else {
-            // move to next char
-            // TODO: move this logic to a nom parser
-            line = &line[1..];
-        }
+    let mut input = line.to_string();
+
+    // pad each word with a repeated
+
+    // replace eight with eightt to catch "eighttwo" and "eightthree" as two tokens
+    input = input.replace("one", "oone");
+    input = input.replace("two", "ttwo");
+    input = input.replace("three", "tthree");
+    input = input.replace("eight", "eightt");
+
+    // replace instances of "one" with "1", etc.
+    for (i, word) in word_names.iter().enumerate() {
+        input = input.replace(word, &(i + 1).to_string());
     }
 
-    digits_to_num(&digits)
+    extract_digits(&input)
 }
 
 pub fn day_01_b(path_name: &str) -> u64 {
@@ -116,37 +101,6 @@ mod tests {
         assert_eq!(extract_more_digits("338"), Some(38));
         assert_eq!(extract_more_digits("seven88"), Some(78));
         assert_eq!(extract_more_digits("qjgr1"), Some(11));
-    }
-
-    #[test]
-    fn test_parse_digit_word() {
-        assert_eq!(parse_digit_word("0"), Ok(("", 0)));
-        assert_eq!(parse_digit_word("1"), Ok(("", 1)));
-        assert_eq!(parse_digit_word("2"), Ok(("", 2)));
-        assert_eq!(parse_digit_word("3"), Ok(("", 3)));
-        assert_eq!(parse_digit_word("4"), Ok(("", 4)));
-        assert_eq!(parse_digit_word("5"), Ok(("", 5)));
-        assert_eq!(parse_digit_word("6"), Ok(("", 6)));
-        assert_eq!(parse_digit_word("7"), Ok(("", 7)));
-        assert_eq!(parse_digit_word("8"), Ok(("", 8)));
-        assert_eq!(parse_digit_word("9"), Ok(("", 9)));
-
-        assert_eq!(parse_digit_word("one"), Ok(("", 1)));
-        assert_eq!(parse_digit_word("two"), Ok(("", 2)));
-        assert_eq!(parse_digit_word("three"), Ok(("", 3)));
-        assert_eq!(parse_digit_word("four"), Ok(("", 4)));
-        assert_eq!(parse_digit_word("five"), Ok(("", 5)));
-        assert_eq!(parse_digit_word("six"), Ok(("", 6)));
-        assert_eq!(parse_digit_word("seven"), Ok(("", 7)));
-        assert_eq!(parse_digit_word("eight"), Ok(("", 8)));
-        assert_eq!(parse_digit_word("nine"), Ok(("", 9)));
-
-        assert_eq!(parse_digit_word("1c"), Ok(("c", 1)));
-        assert_eq!(parse_digit_word("12"), Ok(("2", 1)));
-        assert_eq!(parse_digit_word("one1"), Ok(("1", 1)));
-        assert_eq!(parse_digit_word("fivex"), Ok(("x", 5)));
-        assert_eq!(parse_digit_word("sixteen"), Ok(("teen", 6)));
-        assert!(parse_digit_word("teenfive").is_err());
     }
 
     #[test]
