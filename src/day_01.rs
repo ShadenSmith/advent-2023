@@ -118,6 +118,7 @@ mod tests {
     #[test]
     fn test_parse_digit_word() {
         assert_eq!(parse_digit_word("1c"), Ok(("c", 1)));
+        assert_eq!(parse_digit_word("12"), Ok(("2", 1)));
         assert_eq!(parse_digit_word("one1"), Ok(("1", 1)));
         assert_eq!(parse_digit_word("fivex"), Ok(("x", 5)));
         assert_eq!(parse_digit_word("sixteen"), Ok(("teen", 6)));
