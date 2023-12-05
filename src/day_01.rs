@@ -28,6 +28,18 @@ fn extract_digits(line: &str) -> Option<u64> {
     digits_to_num(&digits)
 }
 
+pub fn day_01_a(path_name: &str) -> u64 {
+    let reader = BufReader::new(fs::File::open(path_name).unwrap());
+
+    reader
+        .lines()
+        .map(|line| {
+            let line = line.unwrap();
+            extract_digits(&line).expect("No digits found in line")
+        })
+        .sum()
+}
+
 //
 // Part 2
 //
@@ -64,18 +76,6 @@ fn extract_more_digits(line: &str) -> Option<u64> {
     }
 
     digits_to_num(&digits)
-}
-
-pub fn day_01_a(path_name: &str) -> u64 {
-    let reader = BufReader::new(fs::File::open(path_name).unwrap());
-
-    reader
-        .lines()
-        .map(|line| {
-            let line = line.unwrap();
-            extract_digits(&line).expect("No digits found in line")
-        })
-        .sum()
 }
 
 pub fn day_01_b(path_name: &str) -> u64 {
