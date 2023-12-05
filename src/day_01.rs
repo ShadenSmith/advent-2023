@@ -29,7 +29,7 @@ fn extract_digits(line: &str) -> Option<u64> {
 }
 
 pub fn day_01_a(path_name: &str) -> u64 {
-    let reader = BufReader::new(fs::File::open(path_name).unwrap());
+    let reader = BufReader::new(fs::File::open(path_name).expect("Could not open input"));
 
     reader
         .lines()
@@ -79,7 +79,7 @@ fn extract_more_digits(line: &str) -> Option<u64> {
 }
 
 pub fn day_01_b(path_name: &str) -> u64 {
-    let reader = BufReader::new(fs::File::open(path_name).unwrap());
+    let reader = BufReader::new(fs::File::open(path_name).expect("Could not open input"));
 
     reader
         .lines()
