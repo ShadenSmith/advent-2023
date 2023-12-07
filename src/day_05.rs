@@ -103,7 +103,7 @@ mod tests {
     }
 
     #[test]
-    fn test_range_map_simple() {
+    fn test_range_map_example() {
         let map = RangeMap {
             ranges: vec![
                 Range {
