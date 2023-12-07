@@ -7,6 +7,14 @@ use std::str::FromStr;
 #[derive(Debug, PartialEq, Eq)]
 struct ParseRangeError;
 
+// TODO:  add an IoError to drop the remaining unwraps?
+#[derive(Debug, PartialEq, Eq)]
+enum ParseAlmanacError {
+    SeedsError,
+    RangeError(ParseRangeError),
+}
+
+#[derive(Debug, PartialEq, Eq)]
 struct Range {
     destination_start: usize,
     source_start: usize,
@@ -49,6 +57,7 @@ impl FromStr for Range {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 struct RangeMap {
     ranges: Vec<Range>,
 }
@@ -68,6 +77,14 @@ impl RangeMap {
 
         return source;
     }
+
+    pub fn add_range(&mut self, range: Range) {
+        self.ranges.push(range);
+    }
+
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 struct Almanac {
@@ -82,8 +99,73 @@ struct Almanac {
 }
 
 impl Almanac {
-    pub fn from_path(path: &str) -> Self {
-        todo!()
+    fn parse_seeds(line: &str) -> Result<Vec<usize>, ParseAlmanacError> {
+        if !line.starts_with("seeds: ") {
+            return Err(ParseAlmanacError::SeedsError);
+        }
+
+        let (header, rest) = line.split_once(" ").unwrap();
+
+        let seeds: Vec<usize> = rest
+            .split_whitespace()
+            .into_iter()
+            .map(|v| v.parse().unwrap())
+            .collect();
+
+        Ok(seeds)
+    }
+
+    fn parse_map(reader: &mut BufReader<fs::File>) -> Result<RangeMap, ParseAlmanacError> {
+        let mut line_buf = String::new();
+        // name
+        reader.read_line(&mut line_buf).unwrap();
+
+        let mut ranges = Vec::new();
+
+        loop {
+            line_buf.clear();
+            reader.read_line(&mut line_buf).unwrap();
+
+            if let Ok(range) = line_buf.parse() {
+                ranges.push(range);
+            } else {
+                break;
+            }
+        }
+
+        Ok(RangeMap { ranges })
+    }
+
+    pub fn from_path(path: &str) -> Result<Self, ParseAlmanacError> {
+        let mut reader = BufReader::new(fs::File::open(path).expect("Could not open input"));
+
+        let mut line_buf = String::new();
+
+        reader.read_line(&mut line_buf).unwrap();
+
+        let seeds = Almanac::parse_seeds(&line_buf)?;
+        line_buf.clear();
+        reader.read_line(&mut line_buf).unwrap();
+        line_buf.clear();
+
+        let seed_to_soil = Almanac::parse_map(&mut reader)?;
+        let soil_to_fertilizer = Almanac::parse_map(&mut reader)?;
+        let fertilizer_to_water = Almanac::parse_map(&mut reader)?;
+        let water_to_light = Almanac::parse_map(&mut reader)?;
+        let light_to_temperature = Almanac::parse_map(&mut reader)?;
+        let temperature_to_humidity = Almanac::parse_map(&mut reader)?;
+        let humidity_to_location = Almanac::parse_map(&mut reader)?;
+
+        Ok(Self {
+            seeds,
+            seed_to_soil,
+            soil_to_fertilizer,
+            fertilizer_to_water,
+            water_to_light,
+            light_to_temperature,
+            temperature_to_humidity,
+            humidity_to_location,
+        })
     }
 }
 
@@ -167,5 +249,29 @@ mod tests {
         assert_eq!(map.remap(97), 99);
 
         assert_eq!(map.remap(10), 10);
+    }
+
+    #[test]
+    fn test_almanac_parse() {
+        let alm = Almanac::from_path("inputs/day_05_test_a.txt").unwrap();
+        assert_eq!(alm.seeds, vec![79, 14, 55, 13]);
+
+        assert_eq!(
+            alm.water_to_light,
+            RangeMap {
+                ranges: vec![
+                    Range {
+                        destination_start: 88,
+                        source_start: 18,
+                        length: 7
+                    },
+                    Range {
+                        destination_start: 18,
+                        source_start: 25,
+                        length: 70
+                    },
+                ],
+            }
+        );
     }
 }
