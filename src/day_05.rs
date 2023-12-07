@@ -79,20 +79,34 @@ struct Almanac {
 }
 
 impl Almanac {
+    pub fn seed_to_location(&self, seed: usize) -> usize {
+        let mut idx = seed;
+        idx = self.seed_to_soil.remap(idx);
+        idx = self.soil_to_fertilizer.remap(idx);
+        idx = self.fertilizer_to_water.remap(idx);
+        idx = self.water_to_light.remap(idx);
+        idx = self.light_to_temperature.remap(idx);
+        idx = self.temperature_to_humidity.remap(idx);
+        idx = self.humidity_to_location.remap(idx);
+        idx
+    }
     pub fn seed_locations(&self) -> Vec<usize> {
         let mut locations = Vec::with_capacity(self.seeds.len());
         for seed in self.seeds.iter() {
-            let mut idx = *seed;
+            locations.push(self.seed_to_location(*seed));
+        }
 
-            idx = self.seed_to_soil.remap(idx);
-            idx = self.soil_to_fertilizer.remap(idx);
-            idx = self.fertilizer_to_water.remap(idx);
-            idx = self.water_to_light.remap(idx);
-            idx = self.light_to_temperature.remap(idx);
-            idx = self.temperature_to_humidity.remap(idx);
-            idx = self.humidity_to_location.remap(idx);
+        locations
+    }
 
-            locations.push(idx);
+    pub fn seed_range_locations(&self) -> Vec<usize> {
+        let mut locations = Vec::with_capacity(self.seeds.len());
+        for range in self.seeds.chunks_exact(2) {
+            let start = range[0];
+            let stop = start + range[1];
+            for seed in start..stop {
+                locations.push(self.seed_to_location(seed));
+            }
         }
 
         locations
@@ -173,7 +187,8 @@ pub fn day_05_a(path_name: &str) -> u64 {
 }
 
 pub fn day_05_b(path_name: &str) -> u64 {
-    0
+    let almanac = Almanac::from_path(path_name);
+    *almanac.seed_range_locations().iter().min().unwrap() as u64
 }
 
 #[cfg(test)]
@@ -183,6 +198,12 @@ mod tests {
     fn test_part1() {
         let result = day_05_a("inputs/day_05_test_a.txt");
         assert_eq!(result, 35);
+    }
+
+    #[test]
+    fn test_part2() {
+        let result = day_05_b("inputs/day_05_test_a.txt");
+        assert_eq!(result, 46);
     }
 
     #[test]

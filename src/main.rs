@@ -10,8 +10,10 @@ fn day_01() {
 
 fn day_05() {
     let part1 = day_05::day_05_a("full-inputs/day_05.txt");
+    let part2 = day_05::day_05_b("full-inputs/day_05.txt");
     println!("Day 05");
     println!("  Part 1: {}", part1);
+    println!("  Part 2: {}", part2);
 }
 
 fn main() {
