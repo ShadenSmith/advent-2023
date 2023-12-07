@@ -9,8 +9,18 @@ struct Range {
 }
 
 impl Range {
-    pub fn contains(&self, source: usize) -> Option<usize> {
-        todo!()
+    pub fn remap(&self, index: usize) -> Option<usize> {
+        if index < self.source_start {
+            return None;
+        }
+
+        let offset = index - self.source_start;
+
+        if offset >= self.length {
+            return None;
+        }
+
+        Some(self.destination_start + offset)
     }
 }
 
@@ -26,7 +36,7 @@ impl Default for RangeMap {
 impl RangeMap {
     pub fn remap(&self, source: usize) -> usize {
         for range in self.ranges.iter() {
-            if let Some(dest) = range.contains(source) {
+            if let Some(dest) = range.remap(source) {
                 return dest;
             }
         }
@@ -53,16 +63,8 @@ impl Almanac {
 }
 
 pub fn day_05_a(path_name: &str) -> u64 {
-    let reader = BufReader::new(fs::File::open(path_name).expect("Could not open input"));
-
-    reader
-        .lines()
-        .map(|line| {
-            let line = line.unwrap();
-
-            0
-        })
-        .sum()
+    let almanac = Almanac::from_path(path_name);
+    todo!()
 }
 
 pub fn day_05_b(path_name: &str) -> u64 {
@@ -73,10 +75,26 @@ pub fn day_05_b(path_name: &str) -> u64 {
 mod tests {
     use super::*;
     #[test]
-    fn test_part1() {}
+    fn test_part1() {
+        let result = day_05_a("inputs/day_05_test_a.txt");
+        assert_eq!(result, 35);
+    }
 
     #[test]
-    fn test_part2() {}
+    fn test_range_remap() {
+        let range = Range {
+            destination_start: 50,
+            source_start: 98,
+            length: 2,
+        };
+
+        assert_eq!(range.remap(98), Some(50));
+        assert_eq!(range.remap(99), Some(51));
+
+        assert_eq!(range.remap(97), None);
+        assert_eq!(range.remap(100), None);
+        assert_eq!(range.remap(1), None);
+    }
 
     #[test]
     fn test_range_map_empty() {
