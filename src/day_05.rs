@@ -1,6 +1,11 @@
 use std::default::Default;
+
 use std::fs;
 use std::io::{BufRead, BufReader};
+use std::str::FromStr;
+
+#[derive(Debug, PartialEq, Eq)]
+struct ParseRangeError;
 
 struct Range {
     destination_start: usize,
@@ -21,6 +26,26 @@ impl Range {
         }
 
         Some(self.destination_start + offset)
+    }
+}
+
+impl FromStr for Range {
+    type Err = ParseRangeError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let elems: Vec<&str> = s.split_whitespace().collect();
+        if elems.len() != 3 {
+            return Err(ParseRangeError);
+        }
+
+        let destination_start = elems[0].parse().map_err(|_| ParseRangeError)?;
+        let source_start = elems[1].parse().map_err(|_| ParseRangeError)?;
+        let length = elems[2].parse().map_err(|_| ParseRangeError)?;
+
+        Ok(Self {
+            destination_start,
+            source_start,
+            length,
+        })
     }
 }
 
@@ -97,13 +122,28 @@ mod tests {
     }
 
     #[test]
-    fn test_range_map_empty() {
+    fn test_range_parse() {
+        let range: Range = "50 98 2".parse().unwrap();
+
+        assert_eq!(range.destination_start, 50);
+        assert_eq!(range.source_start, 98);
+        assert_eq!(range.length, 2);
+
+        let bad_len = "50 98".parse::<Range>();
+        assert!(bad_len.is_err());
+
+        let bad_int = "50 hi 2".parse::<Range>();
+        assert!(bad_int.is_err());
+    }
+
+    #[test]
+    fn test_map_empty() {
         let map = RangeMap::default();
         assert_eq!(map.remap(10), 10);
     }
 
     #[test]
-    fn test_range_map_example() {
+    fn test_map_example() {
         let map = RangeMap {
             ranges: vec![
                 Range {
