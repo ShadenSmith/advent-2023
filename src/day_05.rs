@@ -7,13 +7,6 @@ use std::str::FromStr;
 #[derive(Debug, PartialEq, Eq)]
 struct ParseRangeError;
 
-// TODO:  add an IoError to drop the remaining unwraps?
-#[derive(Debug, PartialEq, Eq)]
-enum ParseAlmanacError {
-    SeedsError,
-    RangeError(ParseRangeError),
-}
-
 #[derive(Debug, PartialEq, Eq)]
 struct Range {
     destination_start: usize,
@@ -57,16 +50,11 @@ impl FromStr for Range {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Default)]
 struct RangeMap {
     ranges: Vec<Range>,
 }
 
-impl Default for RangeMap {
-    fn default() -> Self {
-        Self { ranges: Vec::new() }
-    }
-}
 impl RangeMap {
     pub fn remap(&self, source: usize) -> usize {
         for range in self.ranges.iter() {
@@ -75,15 +63,7 @@ impl RangeMap {
             }
         }
 
-        return source;
-    }
-
-    pub fn add_range(&mut self, range: Range) {
-        self.ranges.push(range);
-    }
-
-    pub fn new() -> Self {
-        Self::default()
+        source
     }
 }
 
@@ -99,23 +79,41 @@ struct Almanac {
 }
 
 impl Almanac {
-    fn parse_seeds(line: &str) -> Result<Vec<usize>, ParseAlmanacError> {
-        if !line.starts_with("seeds: ") {
-            return Err(ParseAlmanacError::SeedsError);
+    pub fn seed_locations(&self) -> Vec<usize> {
+        let mut locations = Vec::with_capacity(self.seeds.len());
+        for seed in self.seeds.iter() {
+            let mut idx = *seed;
+
+            idx = self.seed_to_soil.remap(idx);
+            idx = self.soil_to_fertilizer.remap(idx);
+            idx = self.fertilizer_to_water.remap(idx);
+            idx = self.water_to_light.remap(idx);
+            idx = self.light_to_temperature.remap(idx);
+            idx = self.temperature_to_humidity.remap(idx);
+            idx = self.humidity_to_location.remap(idx);
+
+            locations.push(idx);
         }
 
-        let (header, rest) = line.split_once(" ").unwrap();
+        locations
+    }
+
+    fn parse_seeds(line: &str) -> Vec<usize> {
+        if !line.starts_with("seeds: ") {
+            panic!();
+        }
+
+        let (_header, rest) = line.split_once(' ').unwrap();
 
         let seeds: Vec<usize> = rest
             .split_whitespace()
-            .into_iter()
             .map(|v| v.parse().unwrap())
             .collect();
 
-        Ok(seeds)
+        seeds
     }
 
-    fn parse_map(reader: &mut BufReader<fs::File>) -> Result<RangeMap, ParseAlmanacError> {
+    fn parse_map(reader: &mut BufReader<fs::File>) -> RangeMap {
         let mut line_buf = String::new();
         // name
         reader.read_line(&mut line_buf).unwrap();
@@ -133,30 +131,30 @@ impl Almanac {
             }
         }
 
-        Ok(RangeMap { ranges })
+        RangeMap { ranges }
     }
 
-    pub fn from_path(path: &str) -> Result<Self, ParseAlmanacError> {
+    pub fn from_path(path: &str) -> Self {
         let mut reader = BufReader::new(fs::File::open(path).expect("Could not open input"));
 
         let mut line_buf = String::new();
 
         reader.read_line(&mut line_buf).unwrap();
 
-        let seeds = Almanac::parse_seeds(&line_buf)?;
+        let seeds = Almanac::parse_seeds(&line_buf);
         line_buf.clear();
         reader.read_line(&mut line_buf).unwrap();
         line_buf.clear();
 
-        let seed_to_soil = Almanac::parse_map(&mut reader)?;
-        let soil_to_fertilizer = Almanac::parse_map(&mut reader)?;
-        let fertilizer_to_water = Almanac::parse_map(&mut reader)?;
-        let water_to_light = Almanac::parse_map(&mut reader)?;
-        let light_to_temperature = Almanac::parse_map(&mut reader)?;
-        let temperature_to_humidity = Almanac::parse_map(&mut reader)?;
-        let humidity_to_location = Almanac::parse_map(&mut reader)?;
+        let seed_to_soil = Almanac::parse_map(&mut reader);
+        let soil_to_fertilizer = Almanac::parse_map(&mut reader);
+        let fertilizer_to_water = Almanac::parse_map(&mut reader);
+        let water_to_light = Almanac::parse_map(&mut reader);
+        let light_to_temperature = Almanac::parse_map(&mut reader);
+        let temperature_to_humidity = Almanac::parse_map(&mut reader);
+        let humidity_to_location = Almanac::parse_map(&mut reader);
 
-        Ok(Self {
+        Almanac {
             seeds,
             seed_to_soil,
             soil_to_fertilizer,
@@ -165,13 +163,13 @@ impl Almanac {
             light_to_temperature,
             temperature_to_humidity,
             humidity_to_location,
-        })
+        }
     }
 }
 
 pub fn day_05_a(path_name: &str) -> u64 {
     let almanac = Almanac::from_path(path_name);
-    todo!()
+    *almanac.seed_locations().iter().min().unwrap() as u64
 }
 
 pub fn day_05_b(path_name: &str) -> u64 {
@@ -253,7 +251,7 @@ mod tests {
 
     #[test]
     fn test_almanac_parse() {
-        let alm = Almanac::from_path("inputs/day_05_test_a.txt").unwrap();
+        let alm = Almanac::from_path("inputs/day_05_test_a.txt");
         assert_eq!(alm.seeds, vec![79, 14, 55, 13]);
 
         assert_eq!(
